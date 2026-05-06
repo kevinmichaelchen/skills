@@ -1,0 +1,4 @@
+interface:
+  display_name: "D2 Diagramming"
+  short_description: "Create and maintain D2 diagrams"
+  default_prompt: "Use $d2-diagramming to create a maintainable D2 diagram for this architecture."
