@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Diff Weight"
+  short_description: "Measure the review weight of a GitHub PR diff."
+  default_prompt: "Measure the diff weight of a GitHub PR against its base branch, including line churn, patch tokens, touched-file tokens, test versus production split, area hotspots, and a concise review-weight read."
