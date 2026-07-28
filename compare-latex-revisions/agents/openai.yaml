@@ -1,4 +1,0 @@
-interface:
-  display_name: "LaTeX Revision Comparison"
-  short_description: "Generate verified Track Changes for LaTeX"
-  default_prompt: "Use $compare-latex-revisions to compare these old and new TeX files and generate visually verified inline and side-by-side PDFs."
