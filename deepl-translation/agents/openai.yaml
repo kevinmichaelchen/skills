@@ -1,0 +1,4 @@
+interface:
+  display_name: "DeepL Translation"
+  short_description: "Translate text safely with the DeepL API"
+  default_prompt: "Use $deepl-translation to translate this content while preserving factual details and formatting."
