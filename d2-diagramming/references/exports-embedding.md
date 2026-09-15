@@ -5,7 +5,8 @@
 | Format | Use For | Notes |
 | --- | --- | --- |
 | SVG | Web docs, wikis, default CLI output | Uses CSS and `foreignObject`; best viewed in browser/web context |
-| PNG | Static images | Rendered by Playwright/headless browser from SVG |
+| WEBP | Static raster delivery | Preferred compact raster; render a temporary PNG, then convert with `cwebp` or ImageMagick |
+| PNG | Intermediate or compatibility fallback | Rendered by Playwright/headless browser from SVG; do not publish by default when WEBP works |
 | PDF | Multi-page review, clickable links | Built from PNG pages; links may work, animation does not |
 | PPTX | Presentations from compositions | View-only output, not editable native PowerPoint shapes/text |
 | GIF | Short animated compositions | Good where animated SVG is not supported |

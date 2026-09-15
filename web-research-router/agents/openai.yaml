@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Research Router"
+  short_description: "Route web research across paid and Executor-hosted tools"
+  default_prompt: "Use $web-research-router to find current sources on this topic and summarize the evidence."

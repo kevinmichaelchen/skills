@@ -1,0 +1,571 @@
+schema: skillspec/v0
+id: birdclaw-x-research
+title: Birdclaw X Research
+description: Capture and analyze bounded X/Twitter context through bird or Birdclaw while preserving raw evidence and prohibiting account writes.
+
+activation:
+  summary: Use for an X post or URL, thread, replies, topic search, mentions, bookmarks, account context, or a local Birdclaw archive.
+  priority: domain_router
+
+entry:
+  prompt: Select the narrowest read-only X research route, preserve raw captures before synthesis, and stop every account-state write.
+  tool_boundary:
+    default: allow
+    forbid:
+      - x_account_write
+      - exposing_session_cookie_or_token
+      - persisting_authenticated_handle_without_request
+      - analysis_without_raw_capture
+      - unbounded_x_fetch
+      - silent_weaker_source_substitution
+    permission_required_for:
+      - persistent_cli_install
+      - broad_live_sync
+      - authenticated_handle_disclosure
+
+routes:
+  - id: direct_post_capture
+    label: Capture a specific public post or thread
+    rank: 10
+    description: Use bird with the active browser session for a specific post, author thread, or bounded replies capture.
+    checks:
+      - bird_auth_check
+  - id: local_archive_search
+    label: Search the local Birdclaw archive
+    rank: 20
+    description: Use Birdclaw for cached tweets, local research, and reusable archive queries without a live account crawl.
+  - id: mentions_or_bookmarks
+    label: Read mentions or bookmarks through Birdclaw
+    rank: 30
+    description: Use Birdclaw's local/cache workflow for mentions, bookmarks, liked material, and bounded thread enrichment.
+  - id: live_topic_search
+    label: Search X topics with cache-first fallback
+    rank: 40
+    description: Try Birdclaw search first, then use bounded bird search after a live credential check when the cache is empty.
+  - id: capability_preflight
+    label: Check X research CLI and authentication capability
+    rank: 50
+    description: Check existing commands, no-install paths, and browser-session credentials without exposing account secrets.
+  - id: setup_requested
+    label: Set up an X research CLI
+    rank: 60
+    description: Prefer no-install execution and require a bounded user choice before any persistent global installation.
+  - id: unavailable_or_partial
+    label: Report unavailable or partial X evidence
+    rank: 80
+    description: Stop or degrade explicitly when commands, credentials, posts, pages, or pagination are unavailable.
+  - id: blocked_write
+    label: Block an X account write
+    rank: 90
+    description: Refuse content publication and every action that changes X content, relationships, messages, or profile state.
+
+rules:
+  - id: specific_post_uses_bird
+    when:
+      user_says_any:
+        - x.com/
+        - twitter.com/
+        - tweet id
+        - read this post
+        - capture this tweet
+        - this x post
+    prefer: direct_post_capture
+    forbid:
+      - broad_timeline_crawl_for_single_post
+      - analysis_without_raw_capture
+    reason: A specific public post should use the narrow browser-session capture route.
+  - id: thread_or_replies_stay_bounded
+    when:
+      user_says_any:
+        - thread
+        - replies
+        - reply tree
+        - quote context
+    prefer: direct_post_capture
+    forbid:
+      - unbounded_reply_pagination
+      - analysis_without_raw_capture
+    reason: Threads and replies need explicit page bounds and preserved JSON before synthesis.
+  - id: local_archive_queries_use_birdclaw
+    when:
+      user_says_any:
+        - local archive
+        - local x archive
+        - cached tweets
+        - birdclaw archive
+        - search my local x data
+        - local x research
+    prefer: local_archive_search
+    forbid:
+      - unnecessary_live_fetch
+    reason: Reuse the local archive before paying privacy and network costs for live retrieval.
+  - id: mentions_and_bookmarks_use_birdclaw
+    when:
+      user_says_any:
+        - mentions
+        - bookmarks
+        - bookmarked
+        - bookmark this x post
+        - liked posts
+        - unreplied
+    prefer: mentions_or_bookmarks
+    forbid:
+      - persisting_authenticated_handle_without_request
+      - unbounded_live_sync
+    reason: Birdclaw owns cache-backed mention, bookmark, and liked-content workflows.
+  - id: topic_search_uses_cache_then_bird
+    when:
+      user_says_any:
+        - search x for
+        - search twitter for
+        - topic research
+        - keyword research
+        - what are people saying on x
+        - live x search
+    prefer: live_topic_search
+    forbid:
+      - skipping_cache_first_search
+      - live_search_without_auth_check
+      - unbounded_x_fetch
+    reason: Topic research should reuse cached results first and bound any browser-session fallback.
+  - id: auth_or_capability_checks_use_preflight
+    when:
+      user_says_any:
+        - check bird auth
+        - bird check
+        - whoami
+        - is birdclaw installed
+        - x credentials
+        - browser session
+        - capability check
+    prefer: capability_preflight
+    forbid:
+      - exposing_session_cookie_or_token
+      - persisting_authenticated_handle_without_request
+    reason: Authentication and command availability must be checked without leaking durable identity or credentials.
+  - id: setup_prefers_no_install_path
+    when:
+      user_says_any:
+        - install birdclaw
+        - install bird
+        - install xurl
+        - set up birdclaw
+        - configure x research
+    prefer: setup_requested
+    forbid:
+      - persistent_install_without_approval
+      - assuming_missing_path_means_unavailable
+    elicit:
+      - install_scope
+    reason: Existing commands and pnpm dlx should be tried before a persistent installation is approved.
+  - id: broad_sync_requires_scope
+    when:
+      user_says_any:
+        - sync all
+        - sync my timeline
+        - sync bookmarks
+        - sync likes
+        - refresh all x data
+    prefer: mentions_or_bookmarks
+    forbid:
+      - unbounded_live_sync
+    elicit:
+      - live_sync_scope
+    reason: Live sync spends API reads and broadens the privacy surface, so it must be explicitly bounded.
+  - id: failures_preserve_error_and_gaps
+    when:
+      user_says_any:
+        - command failed
+        - not authenticated
+        - login failed
+        - rate limited
+        - deleted post
+        - private post
+        - pagination incomplete
+        - unavailable
+    prefer: unavailable_or_partial
+    forbid:
+      - silent_weaker_source_substitution
+      - claiming_complete_retrieval
+      - hiding_error_class
+    reason: Missing or partial X evidence must remain visible in the analysis.
+  - id: x_writes_are_always_blocked
+    when:
+      user_says_any:
+        - post a tweet
+        - publish on x
+        - reply to this tweet
+        - quote tweet
+        - retweet
+        - repost
+        - send a dm
+        - like this post
+        - bookmark this post
+        - bookmark this x post
+        - follow this account
+        - mute this account
+        - block this account
+        - delete this tweet
+        - edit my profile
+    prefer: blocked_write
+    forbid:
+      - x_account_write
+      - content_publication
+      - relationship_state_change
+      - direct_message_write
+      - profile_write
+    reason: This skill is strictly read-only even when the user asks for an X write.
+  - id: every_analysis_preserves_scope_and_artifacts
+    when:
+      user_says_any:
+        - analyze
+        - summarize
+        - synthesize
+        - research
+        - context
+    forbid:
+      - analysis_without_raw_capture
+      - omitting_retrieval_scope
+      - omitting_source_url_or_date
+      - treating_x_as_ground_truth
+    reason: A synthesis is complete only when its raw evidence, retrieval scope, provenance, and limitations are visible.
+
+elicitations:
+  install_scope:
+    question: "How should the missing X research capability be handled?"
+    max_choices: 1
+    default: no_install
+    choices:
+      - id: no_install
+        label: Use pnpm dlx
+        description: Run the published package without a persistent global installation.
+        sets:
+          install_scope: no_install
+        safety: local_read
+      - id: persistent_install
+        label: Install globally
+        description: Install the selected CLI persistently after confirming the exact package and command.
+        sets:
+          install_scope: persistent
+        safety: local_write
+      - id: stop_and_report
+        label: Stop and report
+        description: Make no installation and report the unavailable route.
+        sets:
+          install_scope: stop
+        safety: read_only
+  live_sync_scope:
+    question: "What bounded live-sync scope should be used?"
+    max_choices: 1
+    default: exact_requested_set
+    choices:
+      - id: exact_requested_set
+        label: Requested set only
+        description: Sync only the requested mentions, bookmarks, likes, or timeline slice with explicit limits.
+        sets:
+          sync_scope: requested_set
+        safety: network_read
+      - id: local_only
+        label: Local cache only
+        description: Skip live sync and analyze only the current Birdclaw cache.
+        sets:
+          sync_scope: local_only
+        safety: local_read
+      - id: stop_and_report
+        label: Stop and report
+        description: Do not sync and report the missing scope decision.
+        sets:
+          sync_scope: stop
+        safety: read_only
+
+dependencies:
+  pnpm:
+    kind: cli
+    description: Package runner for no-install execution before any persistent CLI installation.
+    command: pnpm
+    check:
+      command: pnpm
+  browser_session:
+    kind: browser
+    description: An authenticated Safari, Chrome, or Firefox X session used by bird for live read-only capture.
+  dependency_ledger:
+    kind: file
+    description: Reviewed dependency ledger for direct, cache-backed, and no-install routes.
+    path: deps.toml
+    check:
+      path: deps.toml
+
+imports:
+  command_guidance:
+    path: references/birdclaw.md
+    role: procedure
+    description: Command, auth, pagination, normalization, sync, setup, and prohibited-write reference.
+    load: on_demand
+    load_when:
+      - an exact bird, Birdclaw, xurl, or pnpm command is needed
+      - authentication or browser-session behavior must be checked
+      - pagination or output shapes must be normalized
+      - setup or bounded sync is requested
+    used_by:
+      - kind: route
+        id: direct_post_capture
+      - kind: route
+        id: local_archive_search
+      - kind: route
+        id: mentions_or_bookmarks
+      - kind: route
+        id: live_topic_search
+      - kind: route
+        id: capability_preflight
+      - kind: route
+        id: setup_requested
+
+resources:
+  skill:
+    path: SKILL.md
+    role: source_material
+    description: Lean activation entry point and portable read-only non-negotiables.
+    used_by:
+      - kind: rule
+        id: x_writes_are_always_blocked
+      - kind: rule
+        id: every_analysis_preserves_scope_and_artifacts
+  dependency_ledger:
+    path: deps.toml
+    role: reference
+    description: Reviewed CLI dependency and degraded-route evidence.
+    used_by:
+      - kind: dependency
+        id: pnpm
+      - kind: dependency
+        id: browser_session
+
+commands:
+  capability_check:
+    description: Check installed X research commands without installing or exposing credentials.
+    template: command -v birdclaw bird xurl pnpm
+    safety: local_read
+    requires:
+      dependencies: []
+      resources: []
+      files: []
+      env: []
+      auth: []
+  bird_auth_check:
+    description: Confirm that at least one browser session provides usable bird credentials without persisting identity.
+    template: pnpm dlx @steipete/bird check
+    safety: browser_attach
+    requires:
+      dependencies:
+        - pnpm
+        - browser_session
+      resources: []
+      files: []
+      env: []
+      auth: []
+  bird_direct_read:
+    description: Capture one public post as raw JSON under the gitignored context directory.
+    template: pnpm dlx @steipete/bird read <tweet-id> --json > .context/x/<public-target>-read.json
+    safety: local_write
+    requires:
+      dependencies:
+        - pnpm
+        - browser_session
+      resources: []
+      files: []
+      env: []
+      auth:
+        - x_browser_session
+  bird_thread_capture:
+    description: Capture one public author thread as raw JSON.
+    template: pnpm dlx @steipete/bird thread <tweet-id> --json > .context/x/<public-target>-thread.json
+    safety: local_write
+    requires:
+      dependencies:
+        - pnpm
+        - browser_session
+      resources: []
+      files: []
+      env: []
+      auth:
+        - x_browser_session
+  bird_replies_capture:
+    description: Capture a bounded reply set with explicit pagination.
+    template: pnpm dlx @steipete/bird replies <tweet-id> --json --all --max-pages <n> > .context/x/<public-target>-replies.json
+    safety: local_write
+    requires:
+      dependencies:
+        - pnpm
+        - browser_session
+      resources: []
+      files: []
+      env: []
+      auth:
+        - x_browser_session
+  bird_live_search:
+    description: Capture a bounded live topic search after cache miss and auth preflight.
+    template: pnpm dlx @steipete/bird search '<bounded-query>' --json -n <limit> > .context/x/<topic>-search.json
+    safety: local_write
+    requires:
+      dependencies:
+        - pnpm
+        - browser_session
+      resources: []
+      files: []
+      env: []
+      auth:
+        - x_browser_session
+  birdclaw_local_search:
+    description: Search the local Birdclaw tweet cache before a live topic search.
+    template: pnpm dlx birdclaw search tweets '<query>' --json
+    safety: local_read
+    requires:
+      dependencies:
+        - pnpm
+      resources: []
+      files: []
+      env: []
+      auth: []
+  birdclaw_mentions_export:
+    description: Export a bounded mentions result from the Birdclaw cache.
+    template: pnpm dlx birdclaw mentions export '<query>' --limit <n> --json
+    safety: local_read
+    requires:
+      dependencies:
+        - pnpm
+      resources: []
+      files: []
+      env: []
+      auth: []
+
+trace:
+  mode: event_log
+  required: true
+  record:
+    - input_received
+    - spec_loaded
+    - rule_evaluated
+    - rule_matched
+    - route_selected
+    - forbid_added
+    - elicitation_requested
+    - outcome_recorded
+
+proof:
+  metrics:
+    - route_decision_accuracy
+    - read_only_forbid_coverage
+    - raw_capture_completeness
+    - bounded_fetch_coverage
+    - source_and_gap_reporting_completeness
+
+tests:
+  - name: specific x url uses direct capture
+    input: read this X post https://x.com/example/status/123456789 and summarize it
+    expect:
+      route: direct_post_capture
+      forbid:
+        - broad_timeline_crawl_for_single_post
+        - analysis_without_raw_capture
+      matched_rules:
+        - specific_post_uses_bird
+        - every_analysis_preserves_scope_and_artifacts
+  - name: thread replies stay bounded
+    input: capture this thread and its replies with no more than two pages
+    expect:
+      route: direct_post_capture
+      forbid:
+        - unbounded_reply_pagination
+        - analysis_without_raw_capture
+      matched_rules:
+        - thread_or_replies_stay_bounded
+  - name: local archive uses birdclaw
+    input: search my local X archive for agent skills
+    expect:
+      route: local_archive_search
+      forbid:
+        - unnecessary_live_fetch
+      matched_rules:
+        - local_archive_queries_use_birdclaw
+  - name: bookmarks use cache backed route
+    input: analyze my bookmarked posts about evals
+    expect:
+      route: mentions_or_bookmarks
+      forbid:
+        - persisting_authenticated_handle_without_request
+        - unbounded_live_sync
+        - analysis_without_raw_capture
+      matched_rules:
+        - mentions_and_bookmarks_use_birdclaw
+        - every_analysis_preserves_scope_and_artifacts
+  - name: topic research uses cache first search
+    input: search X for what people are saying about SkillSpec
+    expect:
+      route: live_topic_search
+      forbid:
+        - skipping_cache_first_search
+        - live_search_without_auth_check
+        - unbounded_x_fetch
+      matched_rules:
+        - topic_search_uses_cache_then_bird
+  - name: cli setup asks for install scope
+    input: install Birdclaw so I can research my bookmarks
+    expect:
+      route: setup_requested
+      elicit:
+        - install_scope
+      forbid:
+        - persistent_install_without_approval
+        - assuming_missing_path_means_unavailable
+      matched_rules:
+        - setup_prefers_no_install_path
+  - name: broad sync asks for bounded scope
+    input: sync all my X data before the analysis
+    expect:
+      route: mentions_or_bookmarks
+      elicit:
+        - live_sync_scope
+      forbid:
+        - unbounded_live_sync
+      matched_rules:
+        - broad_sync_requires_scope
+  - name: auth failure reports partial evidence
+    input: bird is not authenticated and the post is unavailable
+    expect:
+      route: unavailable_or_partial
+      forbid:
+        - silent_weaker_source_substitution
+        - claiming_complete_retrieval
+        - hiding_error_class
+      matched_rules:
+        - failures_preserve_error_and_gaps
+  - name: tweet publication is blocked
+    input: post a tweet announcing the launch
+    expect:
+      route: blocked_write
+      forbid:
+        - x_account_write
+        - content_publication
+        - relationship_state_change
+        - direct_message_write
+        - profile_write
+      matched_rules:
+        - x_writes_are_always_blocked
+  - name: bookmark write is blocked despite research vocabulary
+    input: bookmark this X post so I can research it later
+    expect:
+      route: blocked_write
+      forbid:
+        - x_account_write
+        - content_publication
+        - relationship_state_change
+        - direct_message_write
+        - profile_write
+      matched_rules:
+        - mentions_and_bookmarks_use_birdclaw
+        - x_writes_are_always_blocked
+
+metadata:
+  promoted_from: experimental/kevinmichaelchen/birdclaw-x-research
+  source_kind: folder
+  promotion_status: reviewed_semantic_contract

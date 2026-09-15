@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nx Affected History"
+  short_description: "Replay and explain historical Nx affected sets"
+  default_prompt: "Use $nx-affected-history to replay historical Nx affected selections for this branch or pull request."

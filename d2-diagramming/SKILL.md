@@ -1,6 +1,6 @@
 ---
 name: d2-diagramming
-description: Create, edit, refactor, validate, and export D2 diagrams for software architecture and documentation. Use when Codex needs to work with `.d2` files or D2 syntax; generate architecture diagrams, C4-style views, sequence diagrams, ERDs, UML class diagrams, grid diagrams, multi-board compositions, animated diagrams, SVG/PNG/PDF/PPTX/GIF/ASCII exports; choose D2 layout engines, themes, classes, globs, imports, variables, icons, tooltips, links, or troubleshoot D2 rendering and CLI issues.
+description: Create, edit, validate, or export D2 diagrams. Use for `.d2` files, architecture diagrams, C4, sequence, ERD, UML, grid, animated, or multi-board diagrams, D2 styling/layout, exports, and rendering or CLI troubleshooting.
 ---
 
 # D2 Diagramming
@@ -41,10 +41,11 @@ Then load only the relevant detail:
 
 You can run `scripts/d2_bundle_refs.sh <intent>` to list a minimal reference bundle.
 
-## Output Rules
+## Export Guidance
 
-- For web/docs, prefer SVG unless the target strips interactivity or cannot render SVG `foreignObject`.
-- For static images, use PNG; remember PNG/PDF depend on Playwright/headless browser support.
+- For web/docs, prefer SVG for vector diagrams unless the destination rejects SVG or renders `foreignObject` incorrectly.
+- When the destination requires a raster image, deliver WEBP. Render through a temporary PNG with `scripts/d2_render.sh input.d2 output.webp`; do not retain or publish the PNG unless compatibility explicitly requires it.
+- PNG/PDF and WEBP's intermediate render depend on Playwright/headless browser support; WEBP conversion additionally requires `cwebp` or ImageMagick.
 - For multi-board diagrams, choose multiple SVGs, PDF, PPTX, GIF, or animated SVG based on audience and diagram size.
 - For source code comments or terminal docs, export ASCII and keep the diagram simple: boxes/arrows, ELK/TALA, minimal shapes, no rich text/icons/styles.
 - For presentations, use PPTX for view-only slides; do not imply PowerPoint objects are editable.
@@ -63,5 +64,5 @@ You can run `scripts/d2_bundle_refs.sh <intent>` to list a minimal reference bun
 ## Helper Scripts
 
 - `scripts/d2_check.sh <file.d2>...` verifies the CLI, formats files with `d2 fmt`, and compiles SVGs in a temp directory.
-- `scripts/d2_render.sh [options] input.d2 output.ext` renders one diagram with common layout/theme/sketch/animation/ASCII flags.
+- `scripts/d2_render.sh [options] input.d2 output.ext` renders one diagram with common layout/theme/sketch/animation/ASCII flags and supports optimized WEBP delivery through a temporary PNG.
 - `scripts/d2_bundle_refs.sh <intent>` prints the recommended reference files for a task.

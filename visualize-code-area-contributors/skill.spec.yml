@@ -1,0 +1,285 @@
+schema: skillspec/v0
+id: visualize-code-area-contributors
+title: Visualize Code Area Contributors
+description: Cache path-scoped Git history, deduplicate author identities, rank contributors, and render Flint charts that preserve both contribution magnitude and time.
+
+activation:
+  summary: Analyze and chart who contributed most to a code area and when.
+  keywords:
+    - code ownership
+    - directory contributors
+    - prolific authors
+    - Git author deduplication
+    - contribution recency
+    - contribution heatmap
+    - Flint contributor chart
+  priority: domain
+
+applies_when:
+  - user_intent:
+      - rank contributors to a repository directory or file
+      - visualize contribution magnitude and recency
+      - deduplicate Git authors with several names or emails
+      - chart monthly code-area activity
+      - rebuild contributor charts from cached Git evidence
+
+entry:
+  prompt: Resolve a local repository path and checked ref, cache non-merge Git history, normalize identities with reviewed aliases, then author and verify Flint charts.
+
+routes:
+  - id: analyze_and_render
+    label: Collect, normalize, and render contributor charts
+    rank: 10
+    description: Produce raw evidence, rankings, identity review, Flint specs, and verified WEBPs.
+  - id: analyze_only
+    label: Collect and normalize contributor evidence
+    rank: 20
+    description: Produce machine-readable contributor and monthly activity data without rendering.
+  - id: render_cached
+    label: Rebuild and render cached contributor evidence
+    rank: 30
+    description: Reapply aliases and chart logic without rerunning Git history collection.
+
+rules:
+  - id: scope_real_ref_history
+    when:
+      user_says_any:
+        - who worked in this directory
+        - most prolific contributors
+        - code area ownership
+    prefer: analyze_and_render
+    forbid:
+      - using_all_refs_with_synthetic_commits
+      - including_merge_commits_without_disclosure
+      - omitting_repository_path_or_ref_sha
+    reason: Checked history is reproducible; all refs may include synthetic tool state, and merges inflate path counts.
+  - id: resolve_author_identity
+    when:
+      user_says_any:
+        - dedupe authors
+        - multiple email addresses
+        - same contributor different names
+    prefer: analyze_and_render
+    forbid:
+      - guessing_ambiguous_identity
+      - merging_authors_without_identity_evidence
+      - omitting_identity_conflict_review
+    reason: Email-first reviewed aliases and an explicit conflict report prevent false ownership claims.
+  - id: preserve_scale_and_time
+    when:
+      user_says_any:
+        - visualize scale and recency
+        - magnitude and time
+        - recent versus less recent
+    prefer: analyze_and_render
+    forbid:
+      - charting_magnitude_without_time
+      - charting_recency_without_magnitude
+      - presenting_churn_as_quality_or_effort
+    reason: A scale/recency bar view plus monthly heatmap preserves overall volume, latest activity, and activity shape.
+  - id: disclose_churn_exclusions
+    when:
+      user_says_any:
+        - exclude migration commit
+        - generated code distorts churn
+        - bootstrap commit
+    prefer: analyze_and_render
+    forbid:
+      - silently_excluding_commit_from_churn
+      - removing_excluded_churn_commit_from_commit_count
+    reason: Churn exclusions correct a secondary metric only and must remain auditable.
+  - id: keep_flint_authority
+    when:
+      user_says_any:
+        - use Flint
+        - contributor WEBP chart
+        - render contributor charts
+    prefer: analyze_and_render
+    forbid:
+      - hand_authoring_backend_spec_instead_of_flint
+      - returning_unverified_webp
+    reason: Flint owns chart semantics and structure; static output must be decoded and visually inspected.
+  - id: reuse_cached_history
+    when:
+      user_says_any:
+        - restyle contributor chart
+        - use cached history
+        - do not rerun git
+    prefer: render_cached
+    forbid:
+      - unnecessary_git_log_during_cached_rebuild
+      - coupling_chart_iteration_to_history_collection
+    reason: Raw commit evidence supports repeated identity and presentation iteration offline.
+  - id: preserve_machine_readable_only
+    when:
+      user_says_any:
+        - cache contributor JSON
+        - machine-readable contributor evidence
+        - do not make images
+    prefer: analyze_only
+    forbid:
+      - omitting_repository_path_or_ref_sha
+      - rendering_images_despite_explicit_exclusion
+    reason: A data-only request should retain reproducible scope while stopping before static rendering.
+
+dependencies:
+  git:
+    kind: cli
+    description: Reads local path-scoped Git history.
+    command: git
+    check:
+      command: git
+  python3:
+    kind: cli
+    description: Runs collection and offline normalization.
+    command: python3
+    check:
+      command: python3
+  node:
+    kind: cli
+    description: Runs the Flint static renderer.
+    command: node
+    check:
+      command: node
+  npm:
+    kind: cli
+    description: Installs the pinned runtime under .context.
+    command: npm
+    check:
+      command: npm
+
+states:
+  start:
+    do:
+      - resolve_repo_path_ref
+    next: collect
+  collect:
+    do:
+      - collect_path_history
+    next: normalize
+  normalize:
+    do:
+      - build_identity_and_flint_artifacts
+    next: review
+  review:
+    do:
+      - review_identity_conflicts
+    next: render
+  render:
+    do:
+      - compile_and_render_flint
+    next: verify
+  verify:
+    do:
+      - verify_artifacts
+    next: done
+  done:
+    say: done_summary
+
+commands:
+  collect_path_history:
+    description: Cache non-merge Git numstat history for one checked path and ref.
+    template: "python3 <skill-dir>/scripts/collect.py --repo <repo-root> --path <repo-relative-path> --ref HEAD --out .context/contributors-<path-slug>"
+    safety: read_only
+    requires:
+      dependencies:
+        - git
+        - python3
+  build_identity_and_flint_artifacts:
+    description: Apply reviewed aliases, produce rankings and monthly activity, and author Flint specs from cached history.
+    template: "python3 <skill-dir>/scripts/build_artifacts.py --bundle .context/contributors-<path-slug> --aliases <alias-json> --top 12"
+    safety: local_write
+    requires:
+      dependencies:
+        - python3
+  install_flint_runtime:
+    description: Install pinned static-rendering dependencies under .context.
+    template: "npm install --prefix .context/flint-runtime --no-audit --no-fund flint-chart@0.5.1 vega@6 vega-lite@6 sharp@0.34"
+    safety: local_write
+    requires:
+      dependencies:
+        - npm
+  compile_and_render_flint:
+    description: Compile Flint specs and render WEBP plus Vega-Lite provenance.
+    template: "node <skill-dir>/scripts/render_flint.mjs --runtime .context/flint-runtime --specs <bundle>/flint-specs --out <bundle>/charts"
+    safety: local_write
+    requires:
+      dependencies:
+        - node
+
+closures:
+  resolve_repo_path_ref:
+    description: Confirm the local Git root, repository-relative path, checked ref SHA, merge policy, and whether a predecessor path must be disclosed.
+  review_identity_conflicts:
+    description: Inspect every material name/email collision and unmapped identity; resolve with evidence or disclose it.
+  verify_artifacts:
+    description: Decode and visually inspect each WEBP, then reconcile ordering, dates, and headline values with normalized JSON.
+
+snippets:
+  done_summary:
+    text: Contributor analysis complete with pinned Git scope, alias provenance, identity caveats, rankings, monthly activity, Flint specs, and verified WEBPs.
+
+proof:
+  metrics:
+    - checked_ref_scope_verified
+    - contributor_totals_reconcile
+    - author_alias_provenance_retained
+    - identity_conflicts_reviewed
+    - scale_and_recency_visualized
+    - monthly_activity_visualized
+    - flint_provenance_retained
+    - webp_visual_verification_completed
+
+tests:
+  - name: directory ranking uses checked non-merge history
+    input: who worked in this directory and who are the most prolific contributors
+    expect:
+      route: analyze_and_render
+      forbid:
+        - using_all_refs_with_synthetic_commits
+        - including_merge_commits_without_disclosure
+        - omitting_repository_path_or_ref_sha
+  - name: multiple identities require evidence-backed deduplication
+    input: dedupe authors because the same contributor has different names and multiple email addresses
+    expect:
+      route: analyze_and_render
+      forbid:
+        - guessing_ambiguous_identity
+        - merging_authors_without_identity_evidence
+        - omitting_identity_conflict_review
+  - name: chart preserves magnitude and time
+    input: visualize scale and recency so I can compare magnitude and time
+    expect:
+      route: analyze_and_render
+      forbid:
+        - charting_magnitude_without_time
+        - charting_recency_without_magnitude
+        - presenting_churn_as_quality_or_effort
+  - name: migration exclusion stays transparent
+    input: exclude migration commit from churn because this bootstrap commit distorts the ranking
+    expect:
+      route: analyze_and_render
+      forbid:
+        - silently_excluding_commit_from_churn
+        - removing_excluded_churn_commit_from_commit_count
+  - name: Flint rendering retains provenance
+    input: use Flint to make WEBP contributor charts
+    expect:
+      route: analyze_and_render
+      forbid:
+        - hand_authoring_backend_spec_instead_of_flint
+        - returning_unverified_webp
+  - name: cached restyling does not rerun history
+    input: restyle contributor chart from the cached history and do not rerun git
+    expect:
+      route: render_cached
+      forbid:
+        - unnecessary_git_log_during_cached_rebuild
+        - coupling_chart_iteration_to_history_collection
+  - name: machine readable report can stop before rendering
+    input: cache contributor JSON and CSV for this directory but do not make images
+    expect:
+      route: analyze_only
+      forbid:
+        - omitting_repository_path_or_ref_sha
+        - rendering_images_despite_explicit_exclusion

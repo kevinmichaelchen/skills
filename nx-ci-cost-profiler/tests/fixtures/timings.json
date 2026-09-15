@@ -1,0 +1,6 @@
+[
+  {"project": "organization", "total_seconds": 60, "tests_seconds": 40},
+  {"project": "organization", "total_seconds": 100, "tests_seconds": 75},
+  {"project": "cart", "total_seconds": 10},
+  {"project": "", "total_seconds": 2}
+]

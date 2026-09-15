@@ -1,0 +1,400 @@
+schema: skillspec/v0
+id: executor-cli
+title: Executor CLI
+description: Inspect, configure, authorize, invoke, and troubleshoot Executor through its supported CLI without exposing credentials or mutating backing storage.
+
+activation:
+  summary: Use for Executor catalogs, integrations, remote MCP servers, connections, OAuth or DCR, paused approvals, tool calls, and health troubleshooting.
+  priority: domain_router
+
+entry:
+  prompt: Resolve the live CLI contract, perform only the authorized operation, and prove the target tool works without exposing secrets or changing unrelated state.
+  tool_boundary:
+    default: allow
+    forbid:
+      - direct_executor_database_mutation
+      - guessed_executor_tool_address
+      - accepting_ambiguous_executor_approval
+      - exposing_executor_bearer_url
+      - exposing_oauth_or_media_token
+      - claiming_connection_ready_without_tool_call
+      - overwriting_oauth_client_resource_without_before_after_check
+      - hiding_oauth_scope_expansion
+      - deleting_executor_state_without_exact_request
+      - treating_org_mcp_url_as_cli_base_url
+      - silently_changing_default_server_profile
+      - reusing_tool_path_after_connection_change
+      - treating_object_object_render_as_outcome
+    permission_required_for:
+      - registering_integration
+      - registering_oauth_client
+      - starting_oauth
+      - accepting_paused_mutation
+      - removing_executor_state
+
+routes:
+  - id: inspect_executor
+    label: Inspect Executor state
+    rank: 10
+    description: Resolve the active server and inspect integrations, connections, clients, and live help without mutation.
+  - id: select_server_profile
+    label: Sign in to or select an Executor server profile
+    rank: 15
+    description: Log in to the hosted server or switch profiles while preserving the previous default and using the CLI origin, not the org /mcp URL.
+  - id: call_tool
+    label: Discover and call an Executor tool
+    rank: 20
+    description: Search the live catalog, inspect the exact schema, and invoke a fully resolved tool path.
+  - id: add_remote_mcp
+    label: Register a remote MCP integration
+    rank: 30
+    description: Probe and register a distinctly named remote MCP integration through executor.mcp.addServer.
+  - id: authorize_oauth
+    label: Configure OAuth or DCR
+    rank: 40
+    description: Probe metadata, register without clobbering another resource, start OAuth, and verify the final grant.
+  - id: resume_approval
+    label: Resolve a paused Executor execution
+    rank: 50
+    description: Compare the pending arguments with the user's authorization before accepting, declining, or cancelling.
+  - id: troubleshoot_connection
+    label: Troubleshoot an Executor connection
+    rank: 60
+    description: Compare server, endpoint, resource, owner, client, grant, and health before refresh or reauthorization.
+  - id: blocked_direct_state_edit
+    label: Block direct backing-store mutation
+    rank: 90
+    description: Refuse direct SQLite or secret-store writes and redirect to supported self-management tools.
+
+rules:
+  - id: inspection_starts_with_live_catalog
+    when:
+      user_says_any:
+        - list executor integrations
+        - inspect executor catalog
+        - show executor connections
+    prefer: inspect_executor
+    forbid:
+      - guessed_executor_tool_address
+      - exposing_executor_bearer_url
+    reason: Executor's active profile and catalog are the source of truth.
+  - id: hosted_login_preserves_default_and_uses_cli_origin
+    when:
+      user_says_any:
+        - log in to executor.sh
+        - login to the hosted executor
+        - executor login
+        - switch executor server profile
+        - use the cloud executor profile
+    prefer: select_server_profile
+    forbid:
+      - treating_org_mcp_url_as_cli_base_url
+      - silently_changing_default_server_profile
+      - exposing_executor_bearer_url
+    reason: The CLI origin is https://executor.sh, the org /mcp URL is agent-facing only, and login may move the default profile.
+  - id: invocation_resolves_exact_tool
+    when:
+      user_says_any:
+        - call this executor tool
+        - search executor tools
+        - use executor to run
+    prefer: call_tool
+    forbid:
+      - guessed_executor_tool_address
+      - exposing_oauth_or_media_token
+      - claiming_connection_ready_without_tool_call
+    reason: Tool invocation requires a live path, schema, and sanitized result.
+  - id: remote_mcp_uses_supported_registration
+    when:
+      user_says_any:
+        - add this remote mcp to executor
+        - configure an executor integration
+        - register an mcp server in executor
+    prefer: add_remote_mcp
+    forbid:
+      - direct_executor_database_mutation
+      - deleting_executor_state_without_exact_request
+      - claiming_connection_ready_without_tool_call
+    reason: Remote MCP configuration belongs on Executor's addServer and connection surfaces.
+  - id: oauth_preserves_resource_identity_and_reports_scope
+    when:
+      user_says_any:
+        - set up oauth dcr
+        - authorize this executor connection
+        - register a dynamic oauth client
+    prefer: authorize_oauth
+    forbid:
+      - overwriting_oauth_client_resource_without_before_after_check
+      - hiding_oauth_scope_expansion
+      - exposing_oauth_or_media_token
+      - claiming_connection_ready_without_tool_call
+      - reusing_tool_path_after_connection_change
+    reason: DCR slugs can collide by issuer, final grants can exceed requested scopes, and connection name segments can change after reauthorization.
+  - id: paused_execution_requires_argument_match
+    when:
+      user_says_any:
+        - executor execution paused
+        - approve this executor operation
+        - resume this executor execution
+    prefer: resume_approval
+    forbid:
+      - accepting_ambiguous_executor_approval
+      - exposing_executor_bearer_url
+      - treating_object_object_render_as_outcome
+    reason: A paused execution is accepted only when its arguments match an exact authorized action, and a "[object Object]" render is indeterminate until verified through observable effects.
+  - id: connection_failures_follow_metadata
+    when:
+      user_says_any:
+        - executor connection is broken
+        - executor oauth refresh failed
+        - troubleshoot executor authentication
+    prefer: troubleshoot_connection
+    forbid:
+      - direct_executor_database_mutation
+      - exposing_oauth_or_media_token
+      - claiming_connection_ready_without_tool_call
+    reason: Connection failures are diagnosed from profile, resource, owner, client, scope, and live tool behavior.
+  - id: direct_state_mutation_is_blocked
+    when:
+      user_says_any:
+        - edit executor sqlite
+        - change ~/.executor/data.db
+        - patch the executor database
+    prefer: blocked_direct_state_edit
+    forbid:
+      - direct_executor_database_mutation
+      - exposing_oauth_or_media_token
+      - deleting_executor_state_without_exact_request
+    reason: Backing-store writes bypass Executor's invariants, approvals, and credential handling.
+
+dependencies:
+  executor:
+    kind: cli
+    description: Executor CLI and its configured server profile.
+    check:
+      command: executor --version
+  dependency_ledger:
+    kind: file
+    description: Reviewed dependency evidence.
+    path: deps.toml
+    check:
+      path: deps.toml
+
+imports:
+  command_recipes:
+    path: references/commands.md
+    role: procedure
+    description: Concrete inspection, MCP registration, DCR, approval, invocation, and troubleshooting commands.
+    load: on_demand
+    load_when:
+      - a concrete Executor command is needed
+      - the hosted executor.sh profile is being signed in to or selected
+      - a remote MCP integration is being registered
+      - OAuth or DCR is being configured or repaired
+      - an execution is paused for approval
+    used_by:
+      - kind: route
+        id: inspect_executor
+      - kind: route
+        id: select_server_profile
+      - kind: route
+        id: call_tool
+      - kind: route
+        id: add_remote_mcp
+      - kind: route
+        id: authorize_oauth
+      - kind: route
+        id: resume_approval
+      - kind: route
+        id: troubleshoot_connection
+
+commands:
+  inspect_catalog:
+    description: Resolve the active profile, integrations, and hierarchical self-management help.
+    template: |
+      executor whoami
+      executor tools integrations
+      executor call executor --help
+    safety: read_only
+    requires:
+      dependencies:
+        - executor
+  hosted_profile_login:
+    description: Sign in to the hosted server under a named profile using the CLI origin, then verify and check whether the default profile moved.
+    template: |
+      executor server list
+      executor login --base-url https://executor.sh --name cloud
+      executor whoami --server cloud
+      executor tools integrations --server cloud
+      executor server list
+    safety: network_write
+    requires:
+      dependencies:
+        - executor
+  add_remote_mcp:
+    description: Register an explicitly requested, distinctly named remote MCP integration through the live addServer schema.
+    template: "executor call executor mcp addServer '<validated-json-input>'"
+    safety: network_write
+    requires:
+      dependencies:
+        - executor
+  inspect_oauth:
+    description: Probe protected-resource metadata and list clients before or after DCR.
+    template: |
+      executor call executor coreTools oauth probe '{"url":"<protected-resource-url>"}'
+      executor call executor coreTools oauth clients list '{}'
+    safety: network_read
+    requires:
+      dependencies:
+        - executor
+  start_oauth:
+    description: Start OAuth with the exact returned client slug and explicit owner, integration, connection, and template.
+    template: "executor call executor coreTools oauth start '<validated-json-input>'"
+    safety: network_write
+    requires:
+      dependencies:
+        - executor
+  resume_execution:
+    description: Accept, decline, or cancel a paused execution only after matching its displayed arguments to the user's authorization.
+    template: "executor resume --execution-id <id> --base-url <origin> --action <accept|decline|cancel> [--content '{}']"
+    safety: network_write
+    requires:
+      dependencies:
+        - executor
+  verify_connection:
+    description: Re-list sanitized connection metadata and invoke one harmless target tool.
+    template: |
+      executor call executor coreTools connections list '<filter-json>'
+      executor call tools.<integration>.<owner>.<connection>.<read-tool> '<json-input>'
+    safety: network_read
+    requires:
+      dependencies:
+        - executor
+
+resources:
+  skill:
+    path: SKILL.md
+    role: source_material
+    description: Runtime procedure and safety invariants.
+    used_by:
+      - kind: rule
+        id: oauth_preserves_resource_identity_and_reports_scope
+      - kind: rule
+        id: direct_state_mutation_is_blocked
+  dependency_ledger:
+    path: deps.toml
+    role: reference
+    description: Reviewed executable dependency evidence.
+    used_by:
+      - kind: dependency
+        id: executor
+
+trace:
+  mode: event_log
+  required: true
+  record:
+    - input_received
+    - spec_loaded
+    - rule_evaluated
+    - rule_matched
+    - route_selected
+    - forbid_added
+    - outcome_recorded
+
+proof:
+  metrics:
+    - route_decision_accuracy
+    - direct_state_mutation_block_coverage
+    - live_schema_resolution_coverage
+    - oauth_resource_collision_check_coverage
+    - oauth_scope_diff_coverage
+    - post_configuration_tool_call_coverage
+    - default_profile_preservation_coverage
+
+tests:
+  - name: catalog inspection uses live metadata
+    input: list executor integrations and inspect executor catalog
+    expect:
+      route: inspect_executor
+      forbid:
+        - guessed_executor_tool_address
+        - exposing_executor_bearer_url
+      matched_rules:
+        - inspection_starts_with_live_catalog
+  - name: hosted login keeps default profile and cli origin
+    input: log in to executor.sh and use the cloud executor profile
+    expect:
+      route: select_server_profile
+      forbid:
+        - treating_org_mcp_url_as_cli_base_url
+        - silently_changing_default_server_profile
+        - exposing_executor_bearer_url
+      matched_rules:
+        - hosted_login_preserves_default_and_uses_cli_origin
+  - name: tool invocation resolves the exact path
+    input: search executor tools and call this executor tool
+    expect:
+      route: call_tool
+      forbid:
+        - guessed_executor_tool_address
+        - exposing_oauth_or_media_token
+        - claiming_connection_ready_without_tool_call
+      matched_rules:
+        - invocation_resolves_exact_tool
+  - name: remote mcp uses supported registration
+    input: add this remote mcp to executor
+    expect:
+      route: add_remote_mcp
+      forbid:
+        - direct_executor_database_mutation
+        - deleting_executor_state_without_exact_request
+        - claiming_connection_ready_without_tool_call
+      matched_rules:
+        - remote_mcp_uses_supported_registration
+  - name: oauth checks resource collisions and scope expansion
+    input: set up oauth dcr for this executor connection
+    expect:
+      route: authorize_oauth
+      forbid:
+        - overwriting_oauth_client_resource_without_before_after_check
+        - hiding_oauth_scope_expansion
+        - exposing_oauth_or_media_token
+        - claiming_connection_ready_without_tool_call
+        - reusing_tool_path_after_connection_change
+      matched_rules:
+        - oauth_preserves_resource_identity_and_reports_scope
+  - name: paused execution requires exact argument match
+    input: executor execution paused; approve this executor operation
+    expect:
+      route: resume_approval
+      forbid:
+        - accepting_ambiguous_executor_approval
+        - exposing_executor_bearer_url
+        - treating_object_object_render_as_outcome
+      matched_rules:
+        - paused_execution_requires_argument_match
+  - name: broken connection follows metadata before mutation
+    input: executor oauth refresh failed; troubleshoot executor authentication
+    expect:
+      route: troubleshoot_connection
+      forbid:
+        - direct_executor_database_mutation
+        - exposing_oauth_or_media_token
+        - claiming_connection_ready_without_tool_call
+      matched_rules:
+        - connection_failures_follow_metadata
+  - name: direct sqlite mutation is blocked
+    input: patch the executor database and change ~/.executor/data.db
+    expect:
+      route: blocked_direct_state_edit
+      forbid:
+        - direct_executor_database_mutation
+        - exposing_oauth_or_media_token
+        - deleting_executor_state_without_exact_request
+      matched_rules:
+        - direct_state_mutation_is_blocked
+
+metadata:
+  promoted_from: experimental/kevinmichaelchen/executor-cli
+  source_kind: folder
+  promotion_status: reviewed_semantic_contract

@@ -1,0 +1,54 @@
+# Semantically reviewed runtime dependencies.
+schema_version = 1
+generated_by = "manual"
+review_required = false
+dependency_count = 4
+quarantined_count = 0
+
+[[dependency]]
+id = "gh"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-pr-check-times/SKILL.md workflow steps 1-2"
+reason = "Reads PR metadata, Actions run/job metadata, and job logs."
+local_status = "present"
+required_for = ["profile_and_render", "profile_only"]
+degraded_without = true
+risk = "Without authenticated gh access, current GitHub timing evidence cannot be collected; stop instead of using stale or invented numbers."
+install = "brew install gh, then `gh auth login`."
+
+[[dependency]]
+id = "python3"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-pr-check-times/SKILL.md workflow steps 2-3"
+reason = "Runs the raw collector and fully offline artifact builder."
+local_status = "present"
+required_for = ["profile_and_render", "profile_only", "render_cached"]
+degraded_without = true
+risk = "Without Python 3, the skill cannot produce the normalized evidence bundle; stop and report the missing runtime."
+install = "Use the macOS Python 3 runtime or `brew install python`."
+
+[[dependency]]
+id = "node"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-pr-check-times/SKILL.md workflow step 4"
+reason = "Runs Flint, Vega-Lite, Vega, and Sharp to compile and rasterize charts."
+local_status = "present"
+required_for = ["profile_and_render", "render_cached"]
+degraded_without = true
+risk = "Without Node.js, return the Flint specs and normalized data but report that WEBP rendering is unavailable."
+install = "brew install node."
+
+[[dependency]]
+id = "npm"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-pr-check-times/SKILL.md workflow step 4"
+reason = "Installs the pinned chart runtime under the gitignored .context directory."
+local_status = "present"
+required_for = ["profile_and_render", "render_cached"]
+degraded_without = true
+risk = "Without npm or an already-populated runtime, preserve specs and report that static rendering is unavailable."
+install = "Install Node.js, which bundles npm."

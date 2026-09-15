@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "evidence_label": "fixture",
+    "evidence_kind": "observed-ci",
+    "provenance": {"commit": "abcdef1234567890abcdef1234567890abcdef12", "runner": "fixture", "cache_state": "cold"}
+  },
+  "projects": [
+    {"project": "organization", "p90_total_seconds": 60},
+    {"project": "cart", "p90_total_seconds": 10},
+    {"project": "api", "p90_total_seconds": 5}
+  ]
+}

@@ -1,0 +1,54 @@
+# Semantically reviewed runtime dependencies.
+schema_version = 1
+generated_by = "manual"
+review_required = false
+dependency_count = 4
+quarantined_count = 0
+
+[[dependency]]
+id = "git"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-code-area-contributors/SKILL.md workflow steps 1-2"
+reason = "Reads path-scoped local commit and numstat history."
+local_status = "present"
+required_for = ["analyze_and_render", "analyze_only"]
+degraded_without = true
+risk = "Without Git or a local repository, contributor evidence cannot be collected; stop instead of inventing ownership."
+install = "Install Git and provide a local repository checkout."
+
+[[dependency]]
+id = "python3"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-code-area-contributors/SKILL.md workflow steps 2-4"
+reason = "Runs the raw history collector and offline identity/chart builder."
+local_status = "present"
+required_for = ["analyze_and_render", "analyze_only", "render_cached"]
+degraded_without = true
+risk = "Without Python 3, the skill cannot normalize authors or produce Flint inputs; stop and report the missing runtime."
+install = "Use the macOS Python 3 runtime or `brew install python`."
+
+[[dependency]]
+id = "node"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-code-area-contributors/SKILL.md workflow step 6"
+reason = "Runs Flint, Vega-Lite, Vega, and Sharp for static chart rendering."
+local_status = "present"
+required_for = ["analyze_and_render", "render_cached"]
+degraded_without = true
+risk = "Without Node.js, return normalized data and Flint specs but report that WEBP rendering is unavailable."
+install = "brew install node."
+
+[[dependency]]
+id = "npm"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "visualize-code-area-contributors/SKILL.md workflow step 6"
+reason = "Installs the pinned Flint rendering runtime under .context."
+local_status = "present"
+required_for = ["analyze_and_render", "render_cached"]
+degraded_without = true
+risk = "Without npm or a populated runtime, preserve specs and report that static rendering is unavailable."
+install = "Install Node.js, which bundles npm."

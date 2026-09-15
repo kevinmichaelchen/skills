@@ -1,0 +1,267 @@
+schema: skillspec/v0
+id: visualize-pr-check-times
+title: Visualize PR Check Times
+description: Fetch GitHub PR timing evidence once, rebuild analysis and Flint specs offline, identify the merge-gating critical path, explain slow unit tests, and render WEBP charts.
+
+activation:
+  summary: Profile and visualize PR check latency from current-head GitHub Actions evidence.
+  keywords:
+    - slow PR checks
+    - GitHub Actions timing
+    - CI critical path
+    - workflow duration
+    - WEBP timing chart
+    - Flint chart
+    - slow unit tests
+    - Vitest import time
+  priority: domain
+
+applies_when:
+  - user_intent:
+      - analyze how long pull request checks take
+      - identify the job or step gating a pull request
+      - cache GitHub Actions timing evidence
+      - render static PR timing charts
+      - rerender charts from an existing evidence bundle
+      - explain which Nx unit-test projects and Vitest phases are slow
+
+entry:
+  prompt: Resolve the repository and PR, fetch current-head evidence once, then build normalized timings and Flint specs offline before rendering.
+
+routes:
+  - id: profile_and_render
+    label: Collect, analyze, and render timing charts
+    rank: 10
+    description: Produce the full evidence bundle and visually verified WEBPs.
+  - id: profile_only
+    label: Collect and analyze timing evidence only
+    rank: 20
+    description: Produce raw and normalized data without static rendering.
+  - id: render_cached
+    label: Rebuild and render an existing evidence bundle
+    rank: 30
+    description: Recompute normalized data and Flint specs, then render without querying GitHub again.
+
+rules:
+  - id: bind_to_current_head
+    when:
+      user_says_any:
+        - latest PR checks
+        - current checks
+        - latest workflow run
+    prefer: profile_and_render
+    forbid:
+      - analyzing_run_for_stale_head_sha
+      - reporting_unverified_run_identity
+    reason: A PR can have several runs; latest means the newest completed target workflow for the current head SHA.
+  - id: preserve_evidence
+    when:
+      user_says_any:
+        - cache the data
+        - machine-readable
+        - save evidence
+    prefer: profile_only
+    forbid:
+      - reporting_number_without_cached_timestamp_evidence
+      - committing_pr_logs_or_runtime_dependencies
+    reason: Raw GitHub data and normalized JSON/CSV make every timing claim reproducible without polluting the repository.
+  - id: use_wall_clock_critical_path
+    when:
+      user_says_any:
+        - how long do checks take
+        - what gates merging
+        - critical path
+    prefer: profile_and_render
+    forbid:
+      - summing_parallel_jobs_as_pr_latency
+      - recommending_non_gating_optimization_as_merge_wait_reduction
+    reason: Parallel job totals measure compute, not developer wait; elapsed workflow time and the final gating path measure wait.
+  - id: keep_flint_structural_authority
+    when:
+      user_says_any:
+        - use flint
+        - render webp charts
+        - visualize check times
+    prefer: profile_and_render
+    forbid:
+      - hand_authoring_backend_spec_instead_of_flint
+      - returning_unverified_webp
+    reason: Flint owns chart type, fields, semantics, and sizing; static output must be decoded and visually inspected.
+  - id: reuse_cached_bundle
+    when:
+      user_says_any:
+        - rerender these charts
+        - use the cached data
+        - do not query GitHub
+    prefer: render_cached
+    forbid:
+      - unnecessary_github_query_during_cached_render
+      - coupling_chart_iteration_to_github_fetch
+    reason: Immutable run evidence should support repeated offline derivation, restyling, and rendering.
+  - id: use_exact_unit_project_evidence
+    when:
+      user_says_any:
+        - why are unit tests slow
+        - why are these unit tests so slow
+        - what takes so long in unit tests
+        - unit test bottleneck
+    prefer: profile_and_render
+    forbid:
+      - presenting_nx_completion_gap_as_exact_project_duration
+      - summing_parallel_nx_projects_as_suite_wall_time
+      - summing_overlapping_vitest_components_as_project_wall_time
+    reason: Cached Vitest summaries provide exact project wall time and phase timers; Nx completion gaps are only marginal lower bounds under parallel execution.
+
+dependencies:
+  gh:
+    kind: cli
+    description: Reads GitHub PR, workflow, job, step, and log data.
+    command: gh
+    check:
+      command: gh
+  python3:
+    kind: cli
+    description: Runs the collector and normalizer.
+    command: python3
+    check:
+      command: python3
+  node:
+    kind: cli
+    description: Runs the Flint static renderer.
+    command: node
+    check:
+      command: node
+  npm:
+    kind: cli
+    description: Installs the pinned rendering runtime in .context.
+    command: npm
+    check:
+      command: npm
+
+states:
+  start:
+    do:
+      - resolve_pr_and_auth
+    next: collect
+  collect:
+    do:
+      - collect_current_head_evidence
+    next: build
+  build:
+    do:
+      - build_cached_artifacts
+    next: analyze
+  analyze:
+    do:
+      - compute_wall_clock_findings
+    next: render
+  render:
+    do:
+      - compile_and_render_flint
+    next: verify
+  verify:
+    do:
+      - verify_artifacts
+    next: done
+  done:
+    say: done_summary
+
+commands:
+  collect_current_head_evidence:
+    description: Fetch raw evidence for the latest completed workflow on the current PR head.
+    template: "python3 <skill-dir>/scripts/collect.py --repo <owner/repo> --pr <number> --workflow PR --out .context/pr-<number>-check-times --include-logs"
+    safety: read_only
+    requires:
+      dependencies:
+        - gh
+        - python3
+  build_cached_artifacts:
+    description: Normalize cached timestamps, parse Vitest project summaries, and author workflow plus unit-project breakdown, timeline, and import-versus-test Flint specs without network access.
+    template: "python3 <skill-dir>/scripts/build_artifacts.py --bundle .context/pr-<number>-check-times"
+    safety: local_write
+    requires:
+      dependencies:
+        - python3
+  install_flint_runtime:
+    description: Install pinned static-rendering packages under .context.
+    template: "npm install --prefix .context/flint-runtime --no-audit --no-fund flint-chart@0.5.1 vega@6 vega-lite@6 sharp@0.34"
+    safety: local_write
+    requires:
+      dependencies:
+        - npm
+  compile_and_render_flint:
+    description: Compile generated Flint specs and render WEBP plus Vega-Lite provenance.
+    template: "node <skill-dir>/scripts/render_flint.mjs --runtime .context/flint-runtime --specs <bundle>/flint-specs --out <bundle>/charts"
+    safety: local_write
+    requires:
+      dependencies:
+        - node
+
+closures:
+  resolve_pr_and_auth:
+    description: Confirm gh authentication, repository coordinates, PR number, current head SHA, target workflow, and accessible run data.
+  compute_wall_clock_findings:
+    description: Use workflow elapsed time and the fan-out timeline; never sum parallel jobs as developer wait. For unit tests, prefer exact Vitest project wall time and preserve overlap caveats for Nx and component timers.
+  verify_artifacts:
+    description: Decode every WEBP, inspect dimensions and pixels, and compare chart headlines and values to derived/summary.json.
+
+snippets:
+  done_summary:
+    text: Timing profile complete with current-head run identity, critical-path findings, cached JSON/CSV evidence, Flint specs, compiled Vega-Lite provenance, and visually verified WEBPs.
+
+proof:
+  metrics:
+    - current_head_run_binding_verified
+    - timing_claims_backed_by_cached_evidence
+    - parallelism_interpreted_as_wall_clock
+    - cached_build_runs_without_github
+    - unit_project_duration_attributed_from_vitest
+    - unit_project_overlap_and_tail_visualized
+    - unit_project_import_cost_visualized
+    - flint_provenance_retained
+    - webp_visual_verification_completed
+
+tests:
+  - name: latest run binds to current head
+    input: analyze the latest PR checks and chart them
+    expect:
+      route: profile_and_render
+      forbid:
+        - analyzing_run_for_stale_head_sha
+        - reporting_unverified_run_identity
+  - name: cache request produces evidence
+    input: cache machine-readable PR timing evidence but do not render images
+    expect:
+      route: profile_only
+      forbid:
+        - reporting_number_without_cached_timestamp_evidence
+        - committing_pr_logs_or_runtime_dependencies
+  - name: critical path uses elapsed time
+    input: what gates merging and how long do these parallel checks take
+    expect:
+      route: profile_and_render
+      forbid:
+        - summing_parallel_jobs_as_pr_latency
+        - recommending_non_gating_optimization_as_merge_wait_reduction
+  - name: Flint request retains provenance and verifies output
+    input: use Flint to render WEBP charts of the check timing
+    expect:
+      route: profile_and_render
+      forbid:
+        - hand_authoring_backend_spec_instead_of_flint
+        - returning_unverified_webp
+  - name: cached rerender stays offline
+    input: rerender these charts from the cached data and do not query GitHub
+    expect:
+      route: render_cached
+      forbid:
+        - unnecessary_github_query_during_cached_render
+        - coupling_chart_iteration_to_github_fetch
+  - name: unit test drilldown uses exact project timings
+    input: why are these unit tests so slow and which project is the bottleneck
+    expect:
+      route: profile_and_render
+      forbid:
+        - presenting_nx_completion_gap_as_exact_project_duration
+        - summing_parallel_nx_projects_as_suite_wall_time
+        - summing_overlapping_vitest_components_as_project_wall_time

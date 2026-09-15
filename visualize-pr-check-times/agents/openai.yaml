@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visualize PR Check Times"
+  short_description: "Fetch once, profile and chart PR check latency"
+  default_prompt: "Use $visualize-pr-check-times to fetch this PR's checks once, explain the critical path, and render reusable WEBP timing charts."
