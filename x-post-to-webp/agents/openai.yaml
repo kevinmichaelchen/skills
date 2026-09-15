@@ -1,0 +1,4 @@
+interface:
+  display_name: "X Post to WEBP"
+  short_description: "Capture polished X posts as WEBP images"
+  default_prompt: "Use $x-post-to-webp to capture these X post URLs as cropped WEBP images."
