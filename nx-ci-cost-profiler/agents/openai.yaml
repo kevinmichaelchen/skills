@@ -1,4 +1,0 @@
-interface:
-  display_name: "Nx CI Cost Profiler"
-  short_description: "Capture package-level task and test costs"
-  default_prompt: "Use $nx-ci-cost-profiler to produce normalized per-project CI cost measurements for this Nx workspace."

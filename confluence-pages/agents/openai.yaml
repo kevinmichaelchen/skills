@@ -1,4 +1,0 @@
-interface:
-  display_name: "Confluence Pages"
-  short_description: "Read, update, and embed media in Confluence"
-  default_prompt: "Use $confluence-pages to inspect or safely update this Confluence content, including attachments and inline images when requested."

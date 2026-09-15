@@ -11,7 +11,6 @@ corresponding work repository instead.
 | Skill | Purpose | Provenance |
 |---|---|---|
 | [`birdclaw-x-research`](./birdclaw-x-research/SKILL.md) | Read-only X/Twitter research | Local original |
-| [`confluence-pages`](./confluence-pages/SKILL.md) | Generic Confluence page and media operations | Portable core |
 | [`crawl-docs`](./crawl-docs/SKILL.md) | Cache official documentation locally | Local original |
 | [`d2-diagramming`](./d2-diagramming/SKILL.md) | D2 authoring and rendering | Local original |
 | [`deepl-translation`](./deepl-translation/SKILL.md) | DeepL translation workflows | Local original |
@@ -22,9 +21,6 @@ corresponding work repository instead.
 | [`git-commit-convention`](./git-commit-convention/SKILL.md) | Conventional Commit messages | [kevinmichaelchen/dotfiles](https://github.com/kevinmichaelchen/dotfiles/tree/4fa44473) |
 | [`github-pr-creator`](./github-pr-creator/SKILL.md) | Evidence-backed GitHub pull requests | Portable core |
 | [`html-artifacts`](./html-artifacts/SKILL.md) | Self-contained offline HTML deliverables | Local original |
-| [`nx-affected-history`](./nx-affected-history/SKILL.md) | Historical Nx affected-set analysis | Local original |
-| [`nx-ci-cost-profiler`](./nx-ci-cost-profiler/SKILL.md) | Nx test-cost normalization | Local original |
-| [`nx-weighted-impact`](./nx-weighted-impact/SKILL.md) | Weighted Nx dependency impact | Local original |
 | [`skill-symlink-sync`](./skill-symlink-sync/SKILL.md) | Local skill symlink management | Local original |
 | [`visualize-code-area-contributors`](./visualize-code-area-contributors/SKILL.md) | Generic contributor-history visualization | Portable core |
 | [`visualize-pr-check-times`](./visualize-pr-check-times/SKILL.md) | GitHub PR check-latency visualization | Local original |

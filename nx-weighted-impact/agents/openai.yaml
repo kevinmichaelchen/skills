@@ -1,4 +1,0 @@
-interface:
-  display_name: "Nx Weighted Impact"
-  short_description: "Rank dependency nodes and edges by CI impact"
-  default_prompt: "Use $nx-weighted-impact to measure weighted blast radius and rank the most expensive dependencies in this Nx workspace."
