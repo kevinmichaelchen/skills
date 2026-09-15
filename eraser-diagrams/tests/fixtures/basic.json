@@ -1,0 +1,25 @@
+{
+  "entities": [
+    {
+      "tag": "Shape",
+      "id": "client",
+      "x": 40,
+      "y": 40,
+      "width": 180,
+      "texts": [{ "text": "Client" }],
+      "color": "blue"
+    },
+    {
+      "tag": "Shape",
+      "id": "service",
+      "x": 320,
+      "y": 40,
+      "width": 180,
+      "texts": [{ "text": "Service" }],
+      "color": "green"
+    }
+  ],
+  "connections": [
+    { "from": "client", "to": "service", "label": "request" }
+  ]
+}
