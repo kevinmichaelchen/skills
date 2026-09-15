@@ -31,8 +31,9 @@ remote MCP registration, OAuth flow, or paused execution is needed.
 3. **Execute the narrow request.** Add, authorize, resume, or call only what the
    user requested. If Executor pauses, accept only when the pending arguments
    exactly match an already authorized action; otherwise show the approval to
-   the user. Completion: Executor returned a successful result or a precise
-   actionable blocker.
+   the user. For OAuth, advance one state at a time: Executor UI session,
+   provider consent, then any paused-operation approval. Completion: Executor
+   returned a successful result or a precise actionable blocker.
 4. **Verify behavior.** Re-list metadata after configuration and invoke one
    harmless target tool. Do not call a connection ready merely because an
    integration row or stored authorization exists. Completion: the intended
@@ -54,7 +55,19 @@ remote MCP registration, OAuth flow, or paused execution is needed.
   replace another resource's metadata; use a separate owner scope or a
   resource-specific client and verify both connections.
 - Compare requested OAuth scopes with the final connection grant. Report scope
-  expansion instead of describing a broad grant as least privilege.
+  expansion instead of describing a broad grant as least privilege. If the
+  provider requests scopes beyond the user's request, stop before DCR or OAuth
+  start and obtain explicit approval for the expanded set.
+- Before starting OAuth, look for a matching connection and invoke one harmless
+  read. Refresh it through the live schema if needed; start a new authorization
+  only when no usable connection exists or refresh proves it irreparable.
+- Keep only one authorization attempt in flight for a connection. A user saying
+  "done" is not a retry signal: re-list the connection and inspect the pending
+  state before starting or resuming anything else.
+- On a local Conductor session (`CONDUCTOR_IS_LOCAL=1`), open the signed-in
+  Executor UI with `executor open >/dev/null 2>&1`; never ask the user to copy
+  a server token or paste an authorization URL. On a remote session, give a
+  human handoff that names the needed state without printing bearer URLs.
 - Keep parallel versions under distinct integration and connection names and
   call their full namespaces explicitly to avoid cached or overlapping tools.
 - Never remove an integration, connection, OAuth client, or server profile
