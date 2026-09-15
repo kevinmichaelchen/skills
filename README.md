@@ -15,6 +15,7 @@ corresponding work repository instead.
 | [`d2-diagramming`](./d2-diagramming/SKILL.md) | D2 authoring and rendering | Local original |
 | [`deepl-translation`](./deepl-translation/SKILL.md) | DeepL translation workflows | Local original |
 | [`dialectic`](./dialectic/SKILL.md) | Electric Monks dialectical analysis | [KyleAMathews/hegelian-dialectic-skill](https://github.com/KyleAMathews/hegelian-dialectic-skill/tree/589e485d), MIT |
+| [`eraser-diagrams`](./eraser-diagrams/SKILL.md) | Eraser JSON diagram authoring and rendering | [eraserlabs/eraser-diagrams](https://github.com/eraserlabs/eraser-diagrams/tree/6d377f296b94abf63481a07128884066e4930321), MIT |
 | [`executor-cli`](./executor-cli/SKILL.md) | Executor integration management | Local original |
 | [`flint-chart-author`](./flint-chart-author/SKILL.md) | Flint chart authoring | [microsoft/flint-chart](https://github.com/microsoft/flint-chart/tree/34ef4516554b323a740a426bd1a1e6ba31ee8245/agent-skills/flint-chart-author), MIT |
 | [`flint-theme-author`](./flint-theme-author/SKILL.md) | Flint theme authoring | [microsoft/flint-chart](https://github.com/microsoft/flint-chart/tree/34ef4516554b323a740a426bd1a1e6ba31ee8245/agent-skills/flint-theme-author), MIT |

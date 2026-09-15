@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eraser Diagrams"
+  short_description: "Author and render Eraser diagram JSON"
+  default_prompt: "Use $eraser-diagrams to create and validate a readable Eraser diagram, then export it in the requested format."
