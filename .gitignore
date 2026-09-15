@@ -1,0 +1,4 @@
+.context/
+.skillspec/
+__pycache__/
+*.pyc

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Executor CLI"
+  short_description: "Configure and operate Executor from the CLI"
+  default_prompt: "Use $executor-cli to inspect or configure this Executor integration safely through its supported CLI."

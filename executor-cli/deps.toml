@@ -1,0 +1,17 @@
+schema_version = 1
+generated_by = "hand-authored"
+review_required = false
+dependency_count = 1
+quarantined_count = 0
+
+[[dependency]]
+id = "executor"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "executor-cli/SKILL.md procedure and references/commands.md"
+reason = "All inspection, configuration, OAuth, approval, and tool-call routes use the Executor CLI."
+local_status = "available"
+required_for = ["all_routes"]
+degraded_without = true
+risk = "Without the CLI, stop and report the missing supported surface instead of mutating Executor storage directly."
+install = "Install Executor from https://github.com/UsefulSoftwareCo/executor and configure a server profile."

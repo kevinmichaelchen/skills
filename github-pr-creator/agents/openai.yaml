@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub PR Creator"
+  short_description: "Draft and publish evidence-backed pull requests"
+  default_prompt: "Use $github-pr-creator to draft or publish a pull request for the current branch."

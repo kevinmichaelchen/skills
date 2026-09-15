@@ -1,0 +1,4 @@
+interface:
+  display_name: "Birdclaw X Research"
+  short_description: "Analyze X posts and replies with Birdclaw"
+  default_prompt: "Use $birdclaw-x-research to capture this X thread and synthesize the useful context."

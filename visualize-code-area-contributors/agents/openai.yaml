@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visualize Code Area Contributors"
+  short_description: "Chart contributor scale, recency, and activity"
+  default_prompt: "Use $visualize-code-area-contributors to rank and chart contributors for a directory in this repository."
