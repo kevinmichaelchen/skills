@@ -1,7 +1,7 @@
 schema_version = 1
 generated_by = "hand-authored"
 review_required = false
-dependency_count = 1
+dependency_count = 2
 quarantined_count = 0
 
 [[dependency]]
@@ -15,3 +15,15 @@ required_for = ["all_routes"]
 degraded_without = true
 risk = "Without the CLI, stop and report the missing supported surface instead of mutating Executor storage directly."
 install = "Install Executor from https://github.com/UsefulSoftwareCo/executor and configure a server profile."
+
+[[dependency]]
+id = "python3"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "executor-cli/references/commands.md secret-safe result wrapper"
+reason = "Runs the bundled output redactor before OAuth or attachment-bearing CLI output reaches a transcript."
+local_status = "available"
+required_for = ["secret_safe_output"]
+degraded_without = true
+risk = "Without Python 3, do not run token-bearing commands through the wrapper or emit their raw output."
+install = "Install a supported Python 3 runtime."

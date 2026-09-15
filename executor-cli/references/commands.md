@@ -118,6 +118,39 @@ the complete arguments, do not accept it.
 
 ## OAuth and Dynamic Client Registration
 
+### State, reuse, and consent gates
+
+Treat these as distinct states, and re-read metadata after every handoff:
+
+1. **Executor UI authentication:** local Executor has a signed-in UI session.
+2. **Provider consent:** the provider has completed OAuth and Executor has a
+   connection candidate.
+3. **Paused-operation approval:** Executor has an exact pending mutation that
+   the user has authorized.
+
+Before DCR or `oauth start`, list matching connections and test a harmless
+read. If a connection exists but the read fails, inspect the live refresh
+schema and refresh it first. Start OAuth only if no usable connection remains.
+Do not start another authorization while a matching connection is pending;
+after a user says they finished consent, re-list it rather than restarting.
+
+Compare provider-requested scopes to the user-requested scopes before any
+write. If the provider requires more, show the added scopes and wait for an
+explicit approval; do not rely on post-grant reporting.
+
+For a local Conductor session, open Executor itself without emitting its
+private signed-in URL:
+
+```sh
+if [ "${CONDUCTOR_IS_LOCAL:-}" = "1" ]; then
+  executor open >/dev/null 2>&1
+fi
+```
+
+Never pass a returned OAuth URL to the terminal, chat, or `executor open`.
+Use the local UI handoff above, or tell a remote user that provider consent is
+required without reproducing the URL.
+
 Discover metadata from the protected resource:
 
 ```sh
@@ -134,7 +167,8 @@ If using a separate `org` or `user` owner to avoid a collision would change
 credential ownership semantics and that choice is not already authorized,
 stop and ask rather than guessing.
 
-Start OAuth with the exact returned client slug:
+Start OAuth with the exact returned client slug only after the reuse and scope
+gates above pass:
 
 ```sh
 executor call executor coreTools oauth start '{
@@ -148,7 +182,7 @@ executor call executor coreTools oauth start '{
 }'
 ```
 
-Open the returned authorization URL locally and let the browser callback reach
+Let the local UI complete provider consent and let the browser callback reach
 Executor. Do not paste the URL into reports: it contains transient state. Poll
 connection metadata without exposing credentials:
 
@@ -161,6 +195,31 @@ Compare `oauthScope` with the intended grant. A connection row proves storage,
 not usability; search the integration catalog and invoke one harmless read.
 When DCR collision was possible, also invoke one harmless read through the
 original integration's full namespace before declaring the setup complete.
+
+### Secret-safe result wrapper
+
+For commands that can emit bearer URLs, OAuth state, or attachment/media
+tokens, capture output locally and emit only a redacted copy. The wrapper keeps
+the original output in a temporary directory and removes it on exit:
+
+```sh
+safe_executor() {
+  (
+  output="$(mktemp -t executor-output.XXXXXX)" || exit 1
+  trap 'rm -f "$output"' 0 1 2 3 15
+  executor "$@" >"$output" 2>&1
+  status=$?
+  python3 scripts/redact_executor_output.py <"$output"
+  exit "$status"
+  )
+}
+
+safe_executor call executor coreTools oauth start '<validated-json-input>'
+```
+
+Run the script from the `executor-cli` skill directory. Do not use this wrapper
+for `executor open` locally: suppress that command's output entirely as shown
+above.
 
 ## Tool discovery and invocation
 

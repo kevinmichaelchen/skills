@@ -25,6 +25,9 @@ entry:
       - silently_changing_default_server_profile
       - reusing_tool_path_after_connection_change
       - treating_object_object_render_as_outcome
+      - restarting_oauth_while_pending
+      - starting_broader_oauth_without_approval
+      - asking_for_local_executor_token
     permission_required_for:
       - registering_integration
       - registering_oauth_client
@@ -52,7 +55,7 @@ routes:
   - id: authorize_oauth
     label: Configure OAuth or DCR
     rank: 40
-    description: Probe metadata, register without clobbering another resource, start OAuth, and verify the final grant.
+    description: Reuse or refresh a connection first; otherwise probe, approve scope changes, register without clobbering another resource, start one OAuth attempt, and verify the final grant.
   - id: resume_approval
     label: Resolve a paused Executor execution
     rank: 50
@@ -129,7 +132,31 @@ rules:
       - exposing_oauth_or_media_token
       - claiming_connection_ready_without_tool_call
       - reusing_tool_path_after_connection_change
+      - restarting_oauth_while_pending
+      - starting_broader_oauth_without_approval
     reason: DCR slugs can collide by issuer, final grants can exceed requested scopes, and connection name segments can change after reauthorization.
+  - id: oauth_handoff_reuses_connection_and_waits_for_state
+    when:
+      user_says_any:
+        - oauth is annoying
+        - oauth keeps asking
+        - oauth keeps reopening
+        - i finished oauth
+        - i completed provider consent
+        - reconnect this executor integration
+        - sign in from local conductor
+        - provider asks for additional scopes
+        - oauth has already started
+    prefer: authorize_oauth
+    forbid:
+      - restarting_oauth_while_pending
+      - starting_broader_oauth_without_approval
+      - asking_for_local_executor_token
+      - exposing_executor_bearer_url
+      - exposing_oauth_or_media_token
+      - hiding_oauth_scope_expansion
+      - claiming_connection_ready_without_tool_call
+    reason: OAuth completion, provider consent, and paused approval are separate states; a healthy connection should be reused before new consent begins.
   - id: paused_execution_requires_argument_match
     when:
       user_says_any:
@@ -173,6 +200,11 @@ dependencies:
     description: Executor CLI and its configured server profile.
     check:
       command: executor --version
+  python3:
+    kind: cli
+    description: Python runtime for the bundled credential-output redactor.
+    check:
+      command: python3 --version
   dependency_ledger:
     kind: file
     description: Reviewed dependency evidence.
@@ -248,7 +280,7 @@ commands:
       dependencies:
         - executor
   start_oauth:
-    description: Start OAuth with the exact returned client slug and explicit owner, integration, connection, and template.
+    description: Start one OAuth attempt only after connection-reuse and requested-versus-provider scope gates pass, using the exact returned client slug and explicit owner, integration, connection, and template.
     template: "executor call executor coreTools oauth start '<validated-json-input>'"
     safety: network_write
     requires:
@@ -270,6 +302,20 @@ commands:
     requires:
       dependencies:
         - executor
+  open_local_executor:
+    description: Open the locally signed-in Executor UI without printing its private URL when CONDUCTOR_IS_LOCAL=1.
+    template: 'if [ "${CONDUCTOR_IS_LOCAL:-}" = "1" ]; then executor open >/dev/null 2>&1; fi'
+    safety: local_write
+    requires:
+      dependencies:
+        - executor
+  redact_sensitive_output:
+    description: Redact bearer URLs, OAuth state, and attachment/media tokens before command output is reported.
+    template: "python3 scripts/redact_executor_output.py < <sensitive-command-output>"
+    safety: local_read
+    requires:
+      dependencies:
+        - python3
 
 resources:
   skill:
@@ -288,6 +334,15 @@ resources:
     used_by:
       - kind: dependency
         id: executor
+      - kind: dependency
+        id: python3
+  output_redactor:
+    path: scripts/redact_executor_output.py
+    role: source_material
+    description: Deterministic filter for token-bearing Executor output.
+    used_by:
+      - kind: command
+        id: redact_sensitive_output
 
 trace:
   mode: event_log
@@ -308,6 +363,10 @@ proof:
     - live_schema_resolution_coverage
     - oauth_resource_collision_check_coverage
     - oauth_scope_diff_coverage
+    - oauth_scope_approval_before_write_coverage
+    - oauth_connection_reuse_coverage
+    - oauth_single_in_flight_coverage
+    - local_executor_handoff_coverage
     - post_configuration_tool_call_coverage
     - default_profile_preservation_coverage
 
@@ -363,6 +422,55 @@ tests:
         - reusing_tool_path_after_connection_change
       matched_rules:
         - oauth_preserves_resource_identity_and_reports_scope
+  - name: OAuth friction routes to the stateful authorization flow
+    input: OAuth is annoying; it keeps reopening after I completed provider consent
+    expect:
+      route: authorize_oauth
+      forbid:
+        - restarting_oauth_while_pending
+        - starting_broader_oauth_without_approval
+        - asking_for_local_executor_token
+        - exposing_oauth_or_media_token
+      matched_rules:
+        - oauth_handoff_reuses_connection_and_waits_for_state
+  - name: reconnect reuses an existing connection before consent
+    input: reconnect this executor integration without asking me to approve OAuth again
+    expect:
+      route: authorize_oauth
+      forbid:
+        - restarting_oauth_while_pending
+        - starting_broader_oauth_without_approval
+        - claiming_connection_ready_without_tool_call
+      matched_rules:
+        - oauth_handoff_reuses_connection_and_waits_for_state
+  - name: local Conductor sign-in never requests a server token
+    input: sign in from local Conductor and authorize this Executor integration
+    expect:
+      route: authorize_oauth
+      forbid:
+        - asking_for_local_executor_token
+        - exposing_executor_bearer_url
+        - exposing_oauth_or_media_token
+      matched_rules:
+        - oauth_handoff_reuses_connection_and_waits_for_state
+  - name: excessive provider scopes require a pre-write gate
+    input: provider asks for additional scopes for this Executor OAuth connection
+    expect:
+      route: authorize_oauth
+      forbid:
+        - starting_broader_oauth_without_approval
+        - hiding_oauth_scope_expansion
+      matched_rules:
+        - oauth_handoff_reuses_connection_and_waits_for_state
+  - name: existing in-flight OAuth is not restarted
+    input: OAuth has already started for this Executor integration; I finished OAuth
+    expect:
+      route: authorize_oauth
+      forbid:
+        - restarting_oauth_while_pending
+        - exposing_oauth_or_media_token
+      matched_rules:
+        - oauth_handoff_reuses_connection_and_waits_for_state
   - name: paused execution requires exact argument match
     input: executor execution paused; approve this executor operation
     expect:
