@@ -1,0 +1,354 @@
+schema: skillspec/v0
+id: narrated-demo-video
+title: Narrated Demo Video
+description: Produce documentary-style narrated product demos — audited generated voice-over, a licensed music and ambience bed, a Playwright take paced to the narration, and an artifact-free ffmpeg mix published as a real attachment.
+
+activation:
+  summary: Record, narrate, score, verify, and publish a product demo video with a documentary voice-over.
+  keywords:
+    - narrated demo video
+    - voice-over screen recording
+    - Planet Earth feel
+    - Attenborough voice
+    - Fish Audio narration
+    - background music for a demo
+    - forest ambience
+    - mosquito noise in narration
+  priority: domain
+
+applies_when:
+  - user_intent:
+      - record a product flow as a narrated demo video
+      - add voice-over, music, or ambience to an existing screen recording
+      - find freely licensed cinematic music or ambience for a demo
+      - diagnose noise or artifacts in generated narration
+
+entry:
+  prompt: Write and measure the narration first, audit the voice, record one take paced to the lines, assemble through ffmpeg-skill, verify by measurement and frames, and publish as an attachment with credits and staging disclosed.
+
+routes:
+  - id: record_and_narrate
+    label: Record a paced take and produce the narrated, scored demo
+    rank: 10
+    description: Beat sheet, audited voice lines, a Playwright take with marks, the assembled mix, frame verification, and publication.
+  - id: narrate_existing_recording
+    label: Add narration and a bed to an existing recording
+    rank: 20
+    description: Fit audited voice lines to an existing picture with holds, delays, and at most a slight speed change, then mix and verify.
+  - id: audit_generated_voice
+    label: Audit narration or a mix for artifacts
+    rank: 30
+    description: Measure pause beds, inspect spectrograms per layer, isolate the offending layer, and fix at the source.
+  - id: source_music_and_ambience
+    label: Find and fetch a licensed music and ambience bed
+    rank: 40
+    description: Choose tracks whose license permits the use, fetch them safely, and record attribution requirements.
+
+rules:
+  - id: voice_sets_the_clock
+    when:
+      user_says_any:
+        - narrated demo video
+        - demo video with voice-over
+        - record the end-to-end journey
+    prefer: record_and_narrate
+    forbid:
+      - recording_before_narration_is_measured
+      - showing_credentials_on_camera
+      - presenting_staged_step_as_real
+    reason: A take paced to measured lines needs no rush or freeze, a login on camera leaks identity, and an undisclosed staged step misleads reviewers.
+  - id: publish_as_real_attachment
+    when:
+      user_says_any:
+        - attach the video to the PR
+        - embed the demo in the pull request
+    prefer: record_and_narrate
+    forbid:
+      - committing_media_to_source_control
+      - hiding_attribution_in_a_comment
+      - leaving_sign_in_state_on_disk
+    reason: Media belongs in the host's attachment store, CC BY credit must be visible, and saved sign-in state holds tokens.
+  - id: fit_voice_to_existing_picture
+    when:
+      user_says_any:
+        - add voice-over to this recording
+        - add narration to the existing video
+    prefer: narrate_existing_recording
+    forbid:
+      - speeding_narration_beyond_ten_percent
+      - overlapping_narration_lines
+      - overwriting_the_source_recording
+    reason: Holding the picture preserves the documentary pace; faster speech, colliding lines, or a clobbered source all ruin the result.
+  - id: audit_before_trusting_audio
+    when:
+      user_says_any:
+        - mosquito-like sound
+        - artifact in the narration
+        - is the voice clean
+    prefer: audit_generated_voice
+    forbid:
+      - shipping_unaudited_voice
+      - claiming_audio_quality_without_measurement
+      - blaming_a_layer_without_isolating_it
+    reason: The agent cannot hear; voice clones can carry baked-in music, so claims must rest on pause levels, spectrograms, and per-layer isolation.
+  - id: license_the_bed
+    when:
+      user_says_any:
+        - background music for the demo
+        - forest ambience
+        - Planet Earth style music
+    prefer: source_music_and_ambience
+    forbid:
+      - using_noncommercial_or_unlicensed_track
+      - omitting_required_attribution
+      - keeping_html_error_page_as_audio
+    reason: A product demo needs commercial-use rights and visible credit, and some hosts return HTML error pages that save as audio.
+
+imports:
+  voice_guidance:
+    path: references/voice.md
+    role: procedure
+    description: Fish Audio through Executor, audited voice ids, the pause-bed audit, line-writing and pacing numbers.
+    load: on_demand
+    load_when:
+      - a voice is being chosen or narration is being generated
+      - a narration line needs rewriting for length or delivery
+    used_by:
+      - kind: route
+        id: record_and_narrate
+      - kind: route
+        id: narrate_existing_recording
+      - kind: route
+        id: audit_generated_voice
+  sound_guidance:
+    path: references/sound.md
+    role: reference
+    description: Proven music and ambience picks, other sources, licenses, credit lines, fetching quirks, and mix levels.
+    load: on_demand
+    load_when:
+      - music or ambience is being chosen, fetched, or credited
+    used_by:
+      - kind: route
+        id: source_music_and_ambience
+      - kind: route
+        id: record_and_narrate
+      - kind: route
+        id: narrate_existing_recording
+  recording_guidance:
+    path: references/recording.md
+    role: procedure
+    description: The recorder kit, human-feel techniques, pacing to the voice, off-camera sign-in, payment iframes, and honest staging.
+    load: on_demand
+    load_when:
+      - a Playwright take is being written or debugged
+    used_by:
+      - kind: route
+        id: record_and_narrate
+  mixing_guidance:
+    path: references/mixing.md
+    role: procedure
+    description: The ffmpeg-skill chain, the two-clip short cut, frame inspection without drawtext, and known gotchas.
+    load: on_demand
+    load_when:
+      - narration, music, or ambience is being laid onto a picture
+      - a frame needs inspecting or an ffmpeg-skill script fails
+    used_by:
+      - kind: route
+        id: record_and_narrate
+      - kind: route
+        id: narrate_existing_recording
+  audio_qa_guidance:
+    path: references/audio-qa.md
+    role: procedure
+    description: Layer isolation, pause-bed measurement, spectrogram reading, known causes and fixes, and how to report.
+    load: on_demand
+    load_when:
+      - a listener reports a noise or artifact
+      - a new voice or ambience track has not been audited
+    used_by:
+      - kind: route
+        id: audit_generated_voice
+
+dependencies:
+  ffmpeg:
+    kind: cli
+    description: Decodes audio for measurement, renders spectrograms, and is driven by ffmpeg-skill for every edit.
+    command: ffmpeg
+    check:
+      command: ffmpeg
+  python3:
+    kind: cli
+    description: Runs the audit, fetch, and assembly scripts and ffmpeg-skill.
+    command: python3
+    check:
+      command: python3
+  node:
+    kind: cli
+    description: Runs the Playwright recorder and the title renderer.
+    command: node
+    check:
+      command: node
+  gh:
+    kind: cli
+    description: Uploads the video as a real attachment; needs 2.100 or newer for --attach.
+    command: gh
+    check:
+      command: gh
+  ffmpeg_skill:
+    kind: service
+    description: A checkout of kajisho5/ffmpeg-skill at the reviewed commit, passed to assemble_mix.py.
+  fish_audio_via_executor:
+    kind: service
+    description: Executor MCP with the fish_mcp integration for voice search and text to speech.
+  playwright:
+    kind: service
+    description: The @playwright/test package with Chromium, resolved from the app repository the recorder runs in.
+  dependency_ledger:
+    kind: file
+    description: Reviewed dependency ledger.
+    path: deps.toml
+    check:
+      path: deps.toml
+
+states:
+  start:
+    do:
+      - write_beat_sheet
+    next: voice
+  voice:
+    do:
+      - generate_and_audit_voice
+      - audit_pause_bed
+    next: bed
+  bed:
+    do:
+      - fetch_bed_track
+    next: take
+  take:
+    do:
+      - record_paced_take
+    next: assemble
+  assemble:
+    do:
+      - assemble_mix
+    next: verify
+  verify:
+    do:
+      - verify_frames_and_levels
+    next: publish
+  publish:
+    do:
+      - attach_video
+      - disclose_and_clean_up
+    next: done
+  done:
+    say: done_summary
+
+commands:
+  audit_pause_bed:
+    description: Fail any narration line whose quietest pause sits within 30 dB of the speech level.
+    template: "python3 <skill-dir>/scripts/pause_bed.py <lines-dir>/*.mp3"
+    safety: read_only
+    requires:
+      dependencies:
+        - python3
+        - ffmpeg
+  render_spectrogram:
+    description: Render a 0-6 kHz spectrogram of one layer to look for steady tones through pauses.
+    template: 'ffmpeg -i <layer> -lavfi "showspectrumpic=s=1400x600:legend=0:stop=6000" <layer>.png'
+    safety: local_write
+    requires:
+      dependencies:
+        - ffmpeg
+  fetch_bed_track:
+    description: Download a music or ambience file with a browser user agent and refuse non-audio responses.
+    template: "python3 <skill-dir>/scripts/fetch_audio.py <url> <output>"
+    safety: local_write
+    requires:
+      dependencies:
+        - python3
+  assemble_mix:
+    description: Trim the take, place lines on their marks, add the ducked bed and ambience, export, and fix loudness.
+    template: "python3 <skill-dir>/scripts/assemble_mix.py --ffmpeg-skill <ffmpeg-skill-dir> --take <take.webm> --marks <marks.json> --lines <lines-dir> --head 1.4 --music <bed> --ambience <ambience> --out <out.mp4>"
+    safety: local_write
+    requires:
+      dependencies:
+        - python3
+        - ffmpeg
+        - ffmpeg_skill
+  attach_video:
+    description: Upload the video as a pull-request attachment that renders as a player.
+    template: "gh pr edit <number> --attach <video.mp4>"
+    safety: network_write
+    requires:
+      dependencies:
+        - gh
+
+closures:
+  write_beat_sheet:
+    description: List each scene's action and narration line with word counts, budgeting 1.5-1.9 spoken words per second and at most three quarters of the runtime as speech.
+  generate_and_audit_voice:
+    description: Generate one line through Fish, audit it, then generate and audit the rest and record every duration in durations.json.
+  record_paced_take:
+    description: Record one continuous Playwright take on the recorder kit, signed in off camera, with a mark for every line and end, and confirm the flow's real outcome outside the browser.
+  verify_frames_and_levels:
+    description: Check loudness and true peak, view one frame from inside each key moment, and state plainly that the mix still needs human ears and what to listen for.
+  disclose_and_clean_up:
+    description: Place required credits in visible text, disclose staged steps, delete saved sign-in state, revert temporary patches, and report anything seeded or charged.
+
+snippets:
+  done_summary:
+    text: Demo delivered with audited narration, a licensed and credited bed, measured loudness, viewed key frames, staged steps disclosed, the video attached rather than committed, and a note that the mix still needs a human listen.
+
+proof:
+  metrics:
+    - narration_measured_before_recording
+    - every_voice_line_passes_pause_bed_audit
+    - every_line_has_a_mark_and_no_overlap
+    - loudness_and_true_peak_in_range
+    - key_frames_viewed
+    - attribution_visible_where_published
+    - staged_steps_disclosed
+    - no_media_or_tokens_left_in_source_control
+
+tests:
+  - name: full journey is paced to measured narration
+    input: make a narrated demo video of the checkout and record the end-to-end journey
+    expect:
+      route: record_and_narrate
+      forbid:
+        - recording_before_narration_is_measured
+        - showing_credentials_on_camera
+        - presenting_staged_step_as_real
+  - name: publishing uses a real attachment with visible credit
+    input: attach the video to the PR and embed the demo in the pull request
+    expect:
+      route: record_and_narrate
+      forbid:
+        - committing_media_to_source_control
+        - hiding_attribution_in_a_comment
+        - leaving_sign_in_state_on_disk
+  - name: existing recording gets holds rather than rushed speech
+    input: add voice-over to this recording without making it feel rushed
+    expect:
+      route: narrate_existing_recording
+      forbid:
+        - speeding_narration_beyond_ten_percent
+        - overlapping_narration_lines
+        - overwriting_the_source_recording
+  - name: a reported whine is isolated and measured
+    input: there is a mosquito-like sound, is it an artifact in the narration
+    expect:
+      route: audit_generated_voice
+      forbid:
+        - shipping_unaudited_voice
+        - claiming_audio_quality_without_measurement
+        - blaming_a_layer_without_isolating_it
+  - name: the bed is licensed, credited, and really audio
+    input: find Planet Earth style music and forest ambience as background music for the demo
+    expect:
+      route: source_music_and_ambience
+      forbid:
+        - using_noncommercial_or_unlicensed_track
+        - omitting_required_attribution
+        - keeping_html_error_page_as_audio

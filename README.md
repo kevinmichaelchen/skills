@@ -22,6 +22,7 @@ corresponding work repository instead.
 | [`git-commit-convention`](./git-commit-convention/SKILL.md) | Conventional Commit messages | [kevinmichaelchen/dotfiles](https://github.com/kevinmichaelchen/dotfiles/tree/4fa44473) |
 | [`github-pr-creator`](./github-pr-creator/SKILL.md) | Evidence-backed GitHub pull requests | Portable core |
 | [`html-artifacts`](./html-artifacts/SKILL.md) | Self-contained offline HTML deliverables | Local original |
+| [`narrated-demo-video`](./narrated-demo-video/SKILL.md) | Narrated, scored product demo videos with an audited generated voice-over | Local original; drives [kajisho5/ffmpeg-skill](https://github.com/kajisho5/ffmpeg-skill/tree/59f38c15945ba32608bcc2a76d916bcdcc4f3b8d) (MIT) as an external tool, not vendored |
 | [`skill-symlink-sync`](./skill-symlink-sync/SKILL.md) | Local skill symlink management | Local original |
 | [`visualize-code-area-contributors`](./visualize-code-area-contributors/SKILL.md) | Generic contributor-history visualization | Portable core |
 | [`visualize-pr-check-times`](./visualize-pr-check-times/SKILL.md) | GitHub PR check-latency visualization | Local original |
