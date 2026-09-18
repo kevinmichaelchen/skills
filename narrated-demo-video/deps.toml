@@ -1,0 +1,90 @@
+# Semantically reviewed runtime dependencies.
+schema_version = 1
+generated_by = "manual"
+review_required = false
+dependency_count = 7
+quarantined_count = 0
+
+[[dependency]]
+id = "ffmpeg"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "narrated-demo-video/SKILL.md workflow steps 2, 5, 6 and references/audio-qa.md"
+reason = "Decodes audio for the pause-bed audit, renders spectrograms, and is the engine behind every ffmpeg-skill edit."
+local_status = "present"
+required_for = ["record_and_narrate", "narrate_existing_recording", "audit_generated_voice"]
+degraded_without = true
+risk = "Without FFmpeg nothing can be measured or mixed; stop and report. A build without drawtext still works: use image titles and GIF frame checks."
+install = "brew install ffmpeg"
+
+[[dependency]]
+id = "python3"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "narrated-demo-video/SKILL.md workflow steps 2, 3, 5"
+reason = "Runs pause_bed.py, fetch_audio.py, assemble_mix.py, and ffmpeg-skill's scripts; standard library only."
+local_status = "present"
+required_for = ["record_and_narrate", "narrate_existing_recording", "audit_generated_voice", "source_music_and_ambience"]
+degraded_without = true
+risk = "Without Python 3 the audit and assembly cannot run; stop rather than hand-rolling unverified ffmpeg commands."
+install = "Use the system Python 3 or `brew install python`."
+
+[[dependency]]
+id = "node"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "narrated-demo-video/SKILL.md workflow step 4 and references/recording.md"
+reason = "Runs the Playwright recorder built on recorder_kit.mjs and the title banner renderer."
+local_status = "present"
+required_for = ["record_and_narrate"]
+degraded_without = true
+risk = "Without Node.js no take can be recorded; the narrate_existing_recording route still works on a supplied recording."
+install = "Install the Node.js version the app repository pins."
+
+[[dependency]]
+id = "playwright"
+ecosystem = "npm"
+authority = "reviewed_runtime_dependency"
+source = "references/recording.md, the kit section"
+reason = "Provides Chromium, recordVideo, storage state, and frame locators for the take."
+local_status = "deferred"
+required_for = ["record_and_narrate"]
+degraded_without = true
+risk = "If @playwright/test does not resolve from the app repository, report that and ask before adding a dependency; never install browsers into the skill directory."
+install = "Run the recorder from a repository that already depends on @playwright/test and has Chromium installed."
+
+[[dependency]]
+id = "ffmpeg_skill"
+ecosystem = "git"
+authority = "reviewed_runtime_dependency"
+source = "references/mixing.md, reviewed at commit 59f38c15945ba32608bcc2a76d916bcdcc4f3b8d of github.com/kajisho5/ffmpeg-skill"
+reason = "Supplies cut, pad, audio, join, export, loudness, check, freeze, and overlay with built-in verification."
+local_status = "deferred"
+required_for = ["record_and_narrate", "narrate_existing_recording"]
+degraded_without = true
+risk = "Without the pinned checkout, stop and ask for it; do not replace the verified scripts with ad hoc ffmpeg edit commands, and do not track a moving branch."
+install = "git clone https://github.com/kajisho5/ffmpeg-skill <dir> && git -C <dir> checkout 59f38c15945ba32608bcc2a76d916bcdcc4f3b8d"
+
+[[dependency]]
+id = "fish_audio_via_executor"
+ecosystem = "service"
+authority = "reviewed_runtime_dependency"
+source = "references/voice.md, reaching Fish"
+reason = "Voice search and text to speech run through the Executor MCP fish_mcp integration."
+local_status = "deferred"
+required_for = ["record_and_narrate", "narrate_existing_recording"]
+degraded_without = true
+risk = "If fish_mcp is not connected, say so and accept narration files the user supplies; every supplied line still goes through the pause-bed audit."
+install = "Add the Fish Audio integration to the Executor MCP and confirm it with get_credit_balance."
+
+[[dependency]]
+id = "gh"
+ecosystem = "cli"
+authority = "reviewed_runtime_dependency"
+source = "narrated-demo-video/SKILL.md workflow step 7"
+reason = "gh pr edit --attach (2.100 or newer) uploads the video to the host's attachment store."
+local_status = "present"
+required_for = ["record_and_narrate", "narrate_existing_recording"]
+degraded_without = true
+risk = "With an older gh, hand the file to the user to drag into the description; never fall back to committing media or hosting it on a branch."
+install = "brew upgrade gh"

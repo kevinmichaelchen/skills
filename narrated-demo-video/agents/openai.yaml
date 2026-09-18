@@ -1,0 +1,4 @@
+interface:
+  display_name: "Narrated Demo Video"
+  short_description: "Documentary-style narrated, scored product demo videos"
+  default_prompt: "Use $narrated-demo-video to record this flow as a narrated demo with a British documentary voice-over, music, and ambience."
